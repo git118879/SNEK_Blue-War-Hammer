@@ -253,6 +253,6 @@ This will execute the full exploit chain and display progress markers.
 
 This tool demonstrates a critical vulnerability in Windows Defender. Use only in controlled environments for research purposes. The exploit may be detected by security software and should not be used maliciously.
 
-This documentation is intended to explain every major part of `SNEK_BlueWarHammer.cpp` in a professional, concise manner.
+This documentation is intended to explain every major part of `SNEK_BlueWarHammer.cpp` in a professional manner.
 
 ### Provided by: ATroubledSnake & The SNEK Initiative. Long live freeware.

