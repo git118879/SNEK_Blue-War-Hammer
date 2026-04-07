@@ -1,5 +1,7 @@
 # Blue Hammer Vulnerability Documentation & Reimplementation - SNEK Blue War Hammer
 
+Great thanks to [Nightmare-Eclipse](https://github.com/Nightmare-Eclipse/BlueHammer) for making this exploit POC public.
+
 ## Overview
 
 `SNEK_BlueWarHammer.cpp` is the primary source file for the BlueHammer proof-of-concept. It is designed to exploit Windows Defender update behavior and use the Defender update mechanism to access protected files, culminating in privilege escalation through pass-the-hash techniques.
