@@ -1,6 +1,7 @@
 # Blue Hammer Vulnerability Documentation & Reimplementation - SNEK Blue War Hammer
 
 Great thanks to [Nightmare-Eclipse](https://github.com/Nightmare-Eclipse/BlueHammer) for making this exploit POC public.
+You can find the SNEK precompiled files [here](https://github.com/atroubledsnake/SNEK_Blue-War-Hammer/releases/tag/v1.0.0).
 
 ## Overview
 
